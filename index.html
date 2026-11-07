@@ -11,7 +11,7 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-<title>日本海フィッシングナビ｜第10版</title>
+<title>日本海フィッシングナビ｜第11版</title>
 
 <style>
 :root{--navy:#0b2535;--blue:#167da5;--aqua:#dff3f5;--ink:#18313d;--muted:#657983;--bg:#f3f7f8;--line:#dce6e9;--white:#fff;--orange:#e68a3c}
@@ -49,7 +49,7 @@ footer{text-align:center;color:var(--muted);font-size:10px;line-height:1.6;paddi
 <body>
 <header>
  <div class="brand">NIHONKAI FISHING</div>
- <div class="headrow"><h1>日本海フィッシングナビ</h1><span class="tag">第9版</span></div>
+ <div class="headrow"><h1>日本海フィッシングナビ</h1><span class="tag">第11版</span></div>
  <p>糸魚川・上越・大潟の釣行を、ひとつの画面に。</p>
 </header>
 <main>
@@ -111,7 +111,7 @@ footer{text-align:center;color:var(--muted);font-size:10px;line-height:1.6;paddi
  <div class="detail" id="detail">
   <h3>釣り場を選択してください</h3><p>地図のピン、または釣り場一覧をタップすると、場所の説明と地図リンクが表示されます。</p>
  </div>
- <footer>日本海フィッシングナビ 第9版<br>潮汐データは気象庁の公式潮位表への案内です。風・波予報：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）。非商用利用向け。商用利用時は提供元の条件を確認してください。釣行前に気象庁・海上保安庁・施設情報と現地状況を確認してください。</footer>
+ <footer>日本海フィッシングナビ 第11版<br>潮汐データは気象庁の公式潮位表への案内です。風・波予報：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）。非商用利用向け。商用利用時は提供元の条件を確認してください。釣行前に気象庁・海上保安庁・施設情報と現地状況を確認してください。</footer>
 </main>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -153,7 +153,9 @@ function render(){
 
 }
 document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{activeArea=b.dataset.area;document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('active',x===b));render();}));
-const day=document.getElementById('day');const now=new Date();day.value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+const day=document.getElementById('day');
+const jstDateString=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+day.value=jstDateString();
 function solarTime(dateStr, lat, lng, isSunrise){
  // NOAA近似式。日本時間(JST)へ変換。地形・標高・大気差で実際の見え方は変わります。
  const [y,m,d]=dateStr.split('-').map(Number);
@@ -226,10 +228,10 @@ async function loadForecast(){
  document.getElementById('wave-value').textContent='取得中…';
  document.getElementById('hourly-body').innerHTML='<tr><td colspan="6">予報を取得しています…</td></tr>';
  status.textContent=`${selected.name}の予報を取得中…`;
- const today=new Date();today.setHours(0,0,0,0);
+ const today=jstDateString();
  const chosen=new Date(dateStr+'T00:00:00+09:00');
- const max=new Date(today);max.setDate(max.getDate()+15);
- if(chosen<today||chosen>max){
+ const max=new Date(today+'T00:00:00+09:00');max.setUTCDate(max.getUTCDate()+15);
+ if(dateStr<today||chosen>max){
   const msg='予報対象外の日付です。今日から15日先までの日付を選んでください。';
   document.getElementById('wind-value').textContent='対象外';document.getElementById('wave-value').textContent='対象外';
   document.getElementById('hourly-body').innerHTML=`<tr><td colspan="6">${msg}</td></tr>`;status.textContent=msg;return;
@@ -321,7 +323,7 @@ $('diary-form').addEventListener('submit',e=>{
  $('log-fish').value='';$('log-count').value='1';$('log-note').value='';
 });
 $('export-data').addEventListener('click',()=>{
- const payload={app:'日本海フィッシングナビ',version:9,exportedAt:new Date().toISOString(),logs:getLogs()};
+ const payload={app:'日本海フィッシングナビ',version:11,exportedAt:new Date().toISOString(),logs:getLogs()};
  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='nihonkai-fishing-backup.json';a.click();URL.revokeObjectURL(url);
 });
