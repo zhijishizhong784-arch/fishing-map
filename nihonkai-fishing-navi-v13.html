@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b2535">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="日本海フィッシング">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<title>日本海フィッシングナビ｜第13版</title>
+
+<style>
+:root{--navy:#0b2535;--blue:#167da5;--aqua:#dff3f5;--ink:#18313d;--muted:#657983;--bg:#f3f7f8;--line:#dce6e9;--white:#fff;--orange:#e68a3c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif}
+header{background:linear-gradient(135deg,#0b2535,#12516b);color:white;padding:22px 18px 20px}
+.brand{font-size:12px;letter-spacing:.14em;opacity:.8}.headrow{display:flex;align-items:center;justify-content:space-between;gap:12px}.headrow h1{font-size:23px;margin:6px 0 4px}.tag{font-size:11px;border:1px solid #77a8b8;border-radius:99px;padding:5px 9px;white-space:nowrap}
+header p{font-size:12px;opacity:.8;margin:4px 0 0}
+main{max-width:850px;margin:auto;padding:14px 14px 40px}
+.notice{background:#fff5e9;border:1px solid #f0d4b7;color:#76481f;border-radius:12px;padding:11px 13px;font-size:12px;line-height:1.6;margin-bottom:14px}
+.section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 9px}.section-title h2{font-size:16px;margin:0}.section-title small{color:var(--muted);font-size:11px}
+.controls{display:flex;gap:8px;overflow:auto;padding:2px 0 8px}.chip{border:1px solid var(--line);background:white;border-radius:99px;padding:8px 13px;font-size:12px;white-space:nowrap;color:var(--ink)}.chip.active{background:var(--navy);color:white;border-color:var(--navy)}
+#map{height:360px;border-radius:16px;border:1px solid #c8d9dc;z-index:1;overflow:hidden;background:#dce9e9}
+.schematic-map{position:absolute;inset:0;overflow:hidden;background:linear-gradient(180deg,#cce8ef 0%,#dceef1 56%,#dce7d7 56%,#c9d9c5 100%)}
+.schematic-map svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.map-water-label{position:absolute;left:7%;top:12%;font-size:14px;letter-spacing:.18em;color:#4f8798;font-weight:700}
+.map-land-label{position:absolute;right:7%;bottom:9%;font-size:12px;letter-spacing:.12em;color:#6d896a;font-weight:700}
+.map-marker{position:absolute;transform:translate(-50%,-50%);border:2px solid #fff;border-radius:18px 18px 18px 3px;background:#0b536c;color:#fff;min-width:30px;height:30px;padding:0 7px;box-shadow:0 2px 7px #294c5a66;font-size:11px;font-weight:700;white-space:nowrap;z-index:2}
+.map-marker.selected{background:#e07827;transform:translate(-50%,-50%) scale(1.14);z-index:3}
+.map-marker span{display:inline-block;margin-left:3px;font-weight:600}
+.map-legend{position:absolute;left:10px;bottom:10px;background:#ffffffd9;border:1px solid #cbdadd;border-radius:8px;padding:5px 8px;font-size:10px;color:#36515a;z-index:4}
+@media(min-width:650px){.map-marker{min-width:34px;height:34px;font-size:12px}}
+.mapnote{font-size:10px;color:var(--muted);margin:6px 3px 0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.metric{background:white;border:1px solid var(--line);border-radius:14px;padding:13px;min-height:104px}
+.metric .label{font-size:11px;color:var(--muted)}.metric .value{font-size:21px;font-weight:750;margin:8px 0 3px}.metric .sub{font-size:11px;color:var(--muted);line-height:1.45}
+.metric .icon{float:right;font-size:19px}
+.hourly-wrap{background:white;border:1px solid var(--line);border-radius:14px;overflow:auto}.hourly{width:100%;border-collapse:collapse;font-size:11px;min-width:520px}.hourly th,.hourly td{padding:10px 8px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}.hourly th{background:#eef5f6;color:var(--muted);font-weight:600}.hourly tr:last-child td{border-bottom:0}.status{font-size:11px;color:var(--muted);margin:7px 3px 0;line-height:1.5}.loading{color:var(--blue)}.datebar{display:flex;align-items:center;gap:8px;background:white;border:1px solid var(--line);border-radius:12px;padding:9px 11px}.datebar label{font-size:12px;color:var(--muted)}input[type=date]{border:0;background:transparent;font:inherit;color:var(--ink);font-size:13px;flex:1;min-width:0}
+.spots{display:grid;gap:9px}.spot{display:flex;gap:12px;align-items:center;background:white;border:1px solid var(--line);border-radius:14px;padding:12px;text-align:left;width:100%;color:inherit}.spot.selected{border:2px solid var(--blue);padding:11px}.pin{width:34px;height:34px;border-radius:11px;background:var(--aqua);display:grid;place-items:center;font-size:17px;flex:none}.spot strong{font-size:13px;display:block}.spot small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.spot .arrow{margin-left:auto;color:var(--muted)}
+.detail{margin-top:10px;background:white;border:1px solid var(--line);border-radius:14px;padding:14px}.detail h3{font-size:15px;margin:0 0 7px}.detail p{font-size:12px;line-height:1.65;color:var(--muted);margin:0 0 10px}.actions{display:flex;gap:8px;flex-wrap:wrap}.action{display:inline-block;text-decoration:none;background:var(--navy);color:white;border-radius:9px;padding:9px 12px;font-size:11px}.action.secondary{background:#e8f1f3;color:var(--navy)}
+footer{text-align:center;color:var(--muted);font-size:10px;line-height:1.6;padding:22px 8px}
+.diary-form{display:grid;grid-template-columns:1fr 1fr;gap:9px}.diary-form label{font-size:11px;color:var(--muted);display:grid;gap:5px}.diary-form input,.diary-form select,.diary-form textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px;font:inherit;font-size:13px;background:#fff;color:var(--ink)}.diary-form textarea{grid-column:1/-1;min-height:72px}.diary-form .wide{grid-column:1/-1}.primary-btn{border:0;background:var(--navy);color:white;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700}.record{background:white;border:1px solid var(--line);border-radius:12px;padding:11px;margin-top:8px}.record strong{font-size:13px}.record p{font-size:11px;color:var(--muted);margin:5px 0 0;white-space:pre-wrap}.record button{border:0;background:#f7e9e5;color:#8c3827;border-radius:8px;padding:6px 9px;font-size:10px}.small-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.small-actions button{border:1px solid var(--line);background:white;border-radius:8px;padding:8px 10px;font-size:11px;color:var(--ink)}
+@media(min-width:650px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}.spots{grid-template-columns:repeat(2,minmax(0,1fr))}#map{height:450px}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand">NIHONKAI FISHING</div>
+ <div class="headrow"><h1>日本海フィッシングナビ</h1><span class="tag">第13版</span></div>
+ <p>糸魚川・上越・大潟の釣行を、ひとつの画面に。</p>
+</header>
+<main>
+ <div class="notice"><strong>予報データについて</strong><br>風・波はOpen-Meteoのモデル予報です。波の予報は約5km格子で、沿岸では精度に限界があります。潮汐の自動取得は未接続です。選択地点に近い気象庁の潮位表を案内します。安全判断は気象庁・海上保安庁・現地情報を優先してください。</div>
+ <div class="datebar"><label for="day">釣行日</label><input id="day" type="date"></div>
+ <div class="section-title"><h2>釣り場マップ</h2><small>釣り場の位置関係（概略）</small></div>
+ <div class="controls" id="filters">
+  <button class="chip active" data-area="all">すべて</button><button class="chip" data-area="itoigawa">糸魚川</button><button class="chip" data-area="joetsu">直江津</button><button class="chip" data-area="ogata">大潟</button>
+ </div>
+ <div id="map" aria-label="糸魚川・直江津・大潟の釣り場地図"></div>
+ <div class="mapnote">地図：OpenStreetMap。ピンは釣り場周辺の目安位置です。立入可否・駐車可否・釣り禁止区域を現地で必ず確認してください。</div>
+ <div class="status" id="map-status">地図を読み込んでいます。表示されない場合は、Safariで開き直してください。</div>
+ <div class="actions" style="margin:8px 0 14px"><a class="action" href="https://www.google.com/maps/search/?api=1&query=糸魚川%20直江津%20大潟%20釣り場" target="_blank" rel="noopener">Googleマップで周辺を見る ↗</a><a class="action secondary" href="https://www.openstreetmap.org/#map=10/37.115/138.10" target="_blank" rel="noopener">OpenStreetMapを開く ↗</a></div>
+ <div class="section-title"><h2>釣行コンディション</h2><small id="selected-date"></small></div><div class="status" id="condition-place" aria-live="polite">釣り場を選択してください</div>
+ <div class="grid">
+  <div class="metric"><span class="icon">🌊</span><div class="label">潮汐・潮位（公式情報）</div><div class="value" id="tide-station-value">直江津</div><div class="sub" id="tide-station-sub">近い潮位表掲載地点を案内</div></div>
+  <div class="metric"><span class="icon">🌅</span><div class="label">日の出・日の入り</div><div class="value" id="sunrise-value">--:-- / --:--</div><div class="sub" id="sunrise-sub">選択した釣り場・日付の概算（日本時間）</div></div>
+  <div class="metric"><span class="icon">💨</span><div class="label">風速・風向（6時頃）</div><div class="value" id="wind-value">取得中…</div><div class="sub" id="wind-sub">時間別予報を取得しています</div></div>
+  <div class="metric"><span class="icon">〰️</span><div class="label">波高（6時頃）</div><div class="value" id="wave-value">取得中…</div><div class="sub" id="wave-sub">波向・周期も確認できます</div></div>
+ </div>
+ <div class="section-title"><h2>潮汐・満潮・干潮</h2><small>気象庁の公式潮位表</small></div>
+ <div class="detail" id="tide-detail">
+  <h3 id="tide-title">近隣の潮位表を確認</h3>
+  <p id="tide-description">選択した釣り場から距離が近い潮位表掲載地点を案内します。潮位表は天文潮の予測で、風・気圧などにより実際の潮位や時刻は変わります。</p>
+  <div class="actions"><a class="action" id="jma-tide-link" href="https://ds.data.jma.go.jp/gmd/kaiyou/db/tide/suisan/suisan.php?stn=T3" target="_blank" rel="noopener">気象庁の満潮・干潮を見る ↗</a><a class="action secondary" href="https://www1.kaiho.mlit.go.jp/KAN9/tide2/tide_calendar.html" target="_blank" rel="noopener">海上保安庁の潮汐カレンダー ↗</a></div>
+  <p class="status" id="tide-note">※このリンクは公式表を開くものです。選択日への自動ジャンプや潮位データのアプリ内表示は、まだ実装していません。</p>
+ </div>
+ <div class="section-title"><h2>時間別の風・波予報</h2><small>4時〜18時／日本時間</small></div>
+ <div class="hourly-wrap"><table class="hourly"><thead><tr><th>時刻</th><th>風向</th><th>風速</th><th>最大瞬間風速</th><th>波高</th><th>波周期</th></tr></thead><tbody id="hourly-body"><tr><td colspan="6">予報を取得しています…</td></tr></tbody></table></div>
+ <div class="status" id="forecast-status">予報データを読み込み中です。</div>
+
+ <div class="section-title"><h2>釣行記録</h2><small>このiPhone内に保存</small></div>
+ <div class="detail">
+  <h3>釣果を記録する</h3>
+  <form id="diary-form" class="diary-form">
+   <label>釣行日<input id="log-date" type="date" required></label>
+   <label>釣り場<select id="log-place"></select></label>
+   <label>魚種<input id="log-fish" type="text" placeholder="例：イナダ"></label>
+   <label>匹数<input id="log-count" type="number" min="0" step="1" value="1"></label>
+   <label class="wide">メモ<textarea id="log-note" placeholder="時間・ルアー・潮・状況など"></textarea></label>
+   <button class="primary-btn wide" type="submit">記録を保存</button>
+  </form>
+  <div id="diary-list" aria-live="polite"></div>
+  <div class="small-actions">
+   <button type="button" id="export-data">記録をバックアップ</button>
+   <button type="button" id="import-data">バックアップを復元</button>
+   <input type="file" id="import-file" accept="application/json,.json" hidden>
+  </div>
+  <p class="status">記録は現在この端末のブラウザ内に保存されます。Safariの履歴・Webサイトデータを消去すると失われる場合があるため、定期的にバックアップしてください。別端末との同期はログイン機能の実装後に対応します。</p>
+ </div>
+ <div class="section-title"><h2>アカウント・同期</h2><small>次工程で実装</small></div>
+ <div class="detail">
+  <h3>個人アカウント機能</h3>
+  <p>ログイン、パスワード再設定、複数端末同期は、無料枠の認証・データベースを接続して実装します。偽のログイン画面や、保存されないボタンは置きません。接続が完了するまでは、釣果記録をこの端末内に保存し、バックアップ・復元できるようにしています。</p>
+ </div>
+
+ <div class="section-title"><h2>釣り場一覧</h2><small id="spot-count"></small></div>
+ <div class="spots" id="spots"></div>
+ <div class="detail" id="detail">
+  <h3>釣り場を選択してください</h3><p>地図のピン、または釣り場一覧をタップすると、場所の説明と地図リンクが表示されます。</p>
+ </div>
+ <footer>日本海フィッシングナビ 第13版<br>潮汐データは気象庁の公式潮位表への案内です。風・波予報：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）。非商用利用向け。商用利用時は提供元の条件を確認してください。釣行前に気象庁・海上保安庁・施設情報と現地状況を確認してください。</footer>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+const places=[
+ {id:"susawa",name:"須沢海岸",area:"itoigawa",lat:37.0235,lng:137.8515,type:"サーフ",desc:"砂利浜の海岸。河口周辺や地形変化、潮目を探す候補。波が高い日は無理に入らない。"},
+ {id:"himekawa",name:"姫川河口周辺",area:"itoigawa",lat:37.0385,lng:137.8560,type:"河口・サーフ",desc:"河口の流れと海水が交わる周辺。増水・強い流れ・波打ち際には近づかない。"},
+ {id:"omi",name:"青海シーサイド周辺",area:"itoigawa",lat:37.0255,lng:137.8055,type:"海岸",desc:"海岸の様子を確認してから釣り座を選ぶ候補。駐車・立入ルールを現地で確認。"},
+ {id:"naoetsu",name:"直江津港周辺",area:"joetsu",lat:37.1745,lng:138.2435,type:"港湾周辺",desc:"港内は立入禁止区域・作業区域に注意。釣りが認められた場所だけを利用する。"},
+ {id:"kuroi",name:"黒井周辺",area:"joetsu",lat:37.1815,lng:138.2680,type:"港湾周辺",desc:"防波堤・港湾施設には立入制限がある。立入禁止の突堤には入らない。"},
+ {id:"ogata",name:"上下浜",area:"ogata",lat:37.2030,lng:138.3370,type:"サーフ",desc:"広い海岸。波・離岸流・足場を確認し、安全な範囲から釣る。"},
+ {id:"ogata-port",name:"大潟漁港周辺",area:"ogata",lat:37.2180,lng:138.3300,type:"港湾周辺",desc:"漁業作業の妨げにならないこと。立入禁止区域や駐車ルールを必ず確認。"}
+];
+const mapStatus=document.getElementById('map-status');
+let activeArea="all",selected=places[0];
+const mapBounds={minLat:36.99,maxLat:37.25,minLng:137.77,maxLng:138.38};
+function markerPosition(p){
+ const x=7+((p.lng-mapBounds.minLng)/(mapBounds.maxLng-mapBounds.minLng))*86;
+ const y=8+((mapBounds.maxLat-p.lat)/(mapBounds.maxLat-mapBounds.minLat))*78;
+ return {x:Math.max(4,Math.min(96,x)),y:Math.max(8,Math.min(88,y))};
+}
+function refreshMapSize(){ /* タイル地図を使わない概略図のため再計算不要 */ }
+window.addEventListener('load',refreshMapSize);window.addEventListener('pageshow',refreshMapSize);window.addEventListener('resize',refreshMapSize);
+mapStatus.textContent='概略マップを表示しています。ピンをタップすると釣り場の詳細が見られます。';
+function selectPlace(p){
+ if(!p)return;
+ selected=p;
+ const conditionPlace=document.getElementById('condition-place');
+ if(conditionPlace)conditionPlace.textContent=`選択中：${p.name} ／ ${day.value}`;
+ document.querySelectorAll('.spot').forEach(el=>el.classList.toggle('selected',el.dataset.id===p.id));
+ document.querySelectorAll('.map-marker').forEach(el=>el.classList.toggle('selected',el.dataset.id===p.id));
+ document.getElementById('detail').innerHTML=`<h3>${p.name}</h3><p>${p.type}／${p.desc}</p><div class="actions"><a class="action" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}">Googleマップで開く ↗</a><a class="action secondary" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lng}#map=15/${p.lat}/${p.lng}">地図を拡大 ↗</a></div>`;
+ updateSunTimes();
+ updateTideStation();
+ loadForecast();
+}
+function render(){
+ const visible=places.filter(p=>activeArea==="all"||p.area===activeArea);
+ document.getElementById('spot-count').textContent=visible.length+"か所";
+ document.getElementById('spots').innerHTML=visible.map(p=>`<button class="spot ${selected.id===p.id?'selected':''}" data-id="${p.id}"><span class="pin">📍</span><span><strong>${p.name}</strong><small>${p.type} · ${p.area==="itoigawa"?"糸魚川":p.area==="joetsu"?"直江津":"大潟"}</small></span><span class="arrow">›</span></button>`).join('');
+ document.querySelectorAll('.spot').forEach(el=>el.addEventListener('click',()=>{const p=places.find(x=>x.id===el.dataset.id);selectPlace(p);if(leafletMap)leafletMap.setView([p.lat,p.lng],13,{animate:false});}));
+
+}
+document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{
+ activeArea=b.dataset.area;
+ document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('active',x===b));
+ const visible=places.filter(p=>activeArea==='all'||p.area===activeArea);
+ if(!visible.some(p=>p.id===selected.id))selectPlace(visible[0]);
+ else selectPlace(selected);
+ render();
+ updateMapView();
+}));
+const day=document.getElementById('day');
+const jstDateString=()=>{const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const get=k=>parts.find(x=>x.type===k).value;return `${get('year')}-${get('month')}-${get('day')}`;};
+day.value=jstDateString();
+function solarTime(dateStr, lat, lng, isSunrise){
+ // NOAA近似式。日本時間(JST)へ変換。地形・標高・大気差で実際の見え方は変わります。
+ const [y,m,d]=dateStr.split('-').map(Number);
+ const date=new Date(Date.UTC(y,m-1,d));
+ const start=new Date(Date.UTC(y,0,0));
+ const n=Math.floor((date-start)/86400000);
+ const lngHour=lng/15;
+ const t=n+((isSunrise?6:18)-lngHour)/24;
+ const M=(0.9856*t)-3.289;
+ let L=M+(1.916*Math.sin(M*Math.PI/180))+(0.020*Math.sin(2*M*Math.PI/180))+282.634;
+ L=((L%360)+360)%360;
+ let RA=Math.atan(0.91764*Math.tan(L*Math.PI/180))*180/Math.PI;
+ RA=((RA%360)+360)%360;
+ RA+=(Math.floor(L/90)*90)-(Math.floor(RA/90)*90);
+ RA/=15;
+ const sinDec=0.39782*Math.sin(L*Math.PI/180);
+ const cosDec=Math.cos(Math.asin(sinDec));
+ const cosH=(Math.cos(90.833*Math.PI/180)-(sinDec*Math.sin(lat*Math.PI/180)))/(cosDec*Math.cos(lat*Math.PI/180));
+ if(cosH>1||cosH< -1)return null;
+ const H=(isSunrise?360-Math.acos(cosH)*180/Math.PI:Math.acos(cosH)*180/Math.PI)/15;
+ const localMean=H+RA-(0.06571*t)-6.622;
+ let utcHours=(localMean-lngHour+24)%24;
+ let jstMinutes=Math.round((utcHours+9)*60)%1440;
+ return String(Math.floor(jstMinutes/60)).padStart(2,'0')+':'+String(jstMinutes%60).padStart(2,'0');
+}
+function updateSunTimes(){
+ const dateStr=day.value;
+ if(!dateStr||!selected)return;
+ const rise=solarTime(dateStr,selected.lat,selected.lng,true);
+ const set=solarTime(dateStr,selected.lat,selected.lng,false);
+ document.getElementById('sunrise-value').textContent=rise&&set?`${rise} / ${set}`:'算出対象外';
+ document.getElementById('sunrise-sub').textContent=`${selected.name} · 日の出 / 日の入り（JST・概算）`;
+}
+
+// 気象庁の潮位表掲載地点から、選択した釣り場に最も近い参考地点を案内する。
+// 距離は釣り場座標と潮位表掲載地点の直線距離。実際の潮汐が完全一致する意味ではない。
+const tideStations=[
+ {name:'生地',code:'I7',lat:36+53/60,lng:137+25/60},
+ {name:'直江津',code:'T3',lat:37+11/60,lng:138+15/60},
+ {name:'柏崎',code:'ZC',lat:37+21/60,lng:138+31/60}
+];
+function distanceKm(aLat,aLng,bLat,bLng){
+ const rad=x=>x*Math.PI/180, dLat=rad(bLat-aLat),dLng=rad(bLng-aLng);
+ const q=Math.sin(dLat/2)**2+Math.cos(rad(aLat))*Math.cos(rad(bLat))*Math.sin(dLng/2)**2;
+ return 6371*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q));
+}
+function updateTideStation(){
+ if(!selected)return;
+ const nearest=tideStations.map(st=>({...st,distance:distanceKm(selected.lat,selected.lng,st.lat,st.lng)})).sort((a,b)=>a.distance-b.distance)[0];
+ document.getElementById('tide-station-value').textContent=nearest.name;
+ document.getElementById('tide-station-sub').textContent=`最寄り掲載地点・直線 ${Math.round(nearest.distance)} km`;
+ document.getElementById('tide-title').textContent=`${selected.name}の参考潮位表：${nearest.name}`;
+ document.getElementById('tide-description').textContent=`選択した釣り場から最も近い気象庁の潮位表掲載地点は「${nearest.name}」です（直線距離 約${nearest.distance.toFixed(1)} km）。釣り場そのものの潮位ではなく、周辺の参考値として確認してください。`;
+ document.getElementById('jma-tide-link').href=`https://ds.data.jma.go.jp/gmd/kaiyou/db/tide/suisan/suisan.php?stn=${nearest.code}`;
+ document.getElementById('jma-tide-link').textContent=`気象庁 ${nearest.name} の満潮・干潮を見る ↗`;
+ document.getElementById('tide-note').textContent=`選択日：${day.value}。気象庁のページで対象日を選択してください。潮位表は天文潮の予測で、気象条件や地形により実際の潮位・潮時は異なります。`;
+}
+
+function directionName(deg){
+ if(deg===null||deg===undefined||Number.isNaN(Number(deg)))return '--';
+ const dirs=['北','北北東','北東','東北東','東','東南東','南東','南南東','南','南南西','南西','西南西','西','西北西','北西','北北西'];
+ return dirs[Math.round(Number(deg)/22.5)%16];
+}
+function fmt(v,digits=1){return v===null||v===undefined||Number.isNaN(Number(v))?'--':Number(v).toFixed(digits);}
+let forecastToken=0;
+async function loadForecast(){
+ const token=++forecastToken, dateStr=day.value;
+ const status=document.getElementById('forecast-status');
+ document.getElementById('wind-value').textContent='取得中…';
+ document.getElementById('wave-value').textContent='取得中…';
+ document.getElementById('hourly-body').innerHTML='<tr><td colspan="6">予報を取得しています…</td></tr>';
+ status.textContent=`${selected.name}の予報を取得中…`;
+ const today=jstDateString();
+ const chosen=new Date(dateStr+'T00:00:00+09:00');
+ const max=new Date(today+'T00:00:00+09:00');max.setUTCDate(max.getUTCDate()+15);
+ if(dateStr<today||chosen>max){
+  const msg='予報対象外の日付です。今日から15日先までの日付を選んでください。';
+  document.getElementById('wind-value').textContent='対象外';document.getElementById('wave-value').textContent='対象外';
+  document.getElementById('hourly-body').innerHTML=`<tr><td colspan="6">${msg}</td></tr>`;status.textContent=msg;return;
+ }
+ const q=`latitude=${selected.lat}&longitude=${selected.lng}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms&timezone=Asia%2FTokyo&forecast_days=16`;
+ const m=`latitude=${selected.lat}&longitude=${selected.lng}&hourly=wave_height,wave_direction,wave_period,swell_wave_height&length_unit=metric&timezone=Asia%2FTokyo&forecast_days=16&cell_selection=sea`;
+ try{
+  const [wr,mr]=await Promise.all([
+   fetch('https://api.open-meteo.com/v1/forecast?'+q),
+   fetch('https://marine-api.open-meteo.com/v1/marine?'+m)
+  ]);
+  if(!wr.ok||!mr.ok)throw new Error('予報サービスから正常な応答がありません');
+  const [weather,marine]=await Promise.all([wr.json(),mr.json()]);
+  if(token!==forecastToken)return;
+  if(weather.error)throw new Error(weather.reason||'風予報を取得できません');
+  if(marine.error)throw new Error(marine.reason||'波予報を取得できません');
+  const w=weather.hourly, a=marine.hourly;
+  const indices=w.time.map((t,i)=>t.startsWith(dateStr)?i:-1).filter(i=>i>=0);
+  if(!indices.length)throw new Error('選択日の予報データがありません');
+  const target=indices.find(i=>w.time[i].endsWith('T06:00'))??indices[0];
+  document.getElementById('wind-value').textContent=`${fmt(w.wind_speed_10m[target])} m/s`;
+  document.getElementById('wind-sub').textContent=`${directionName(w.wind_direction_10m[target])}向き · 最大瞬間 ${fmt(w.wind_gusts_10m[target])} m/s（${w.time[target].slice(11,16)}）`;
+  const mi=a.time.findIndex(t=>t===w.time[target]);
+  document.getElementById('wave-value').textContent=mi>=0&&a.wave_height[mi]!=null?`${fmt(a.wave_height[mi])} m`:'データなし';
+  document.getElementById('wave-sub').textContent=mi>=0?`${directionName(a.wave_direction[mi])}から · 周期 ${fmt(a.wave_period[mi])}秒`:'海洋予報データなし';
+  const rows=indices.filter(i=>[4,6,8,10,12,14,16,18].includes(Number(w.time[i].slice(11,13))));
+  document.getElementById('hourly-body').innerHTML=rows.map(i=>{
+   const j=a.time.findIndex(t=>t===w.time[i]);
+   return `<tr><td>${w.time[i].slice(11,16)}</td><td>${directionName(w.wind_direction_10m[i])}</td><td>${fmt(w.wind_speed_10m[i])} m/s</td><td>${fmt(w.wind_gusts_10m[i])} m/s</td><td>${j>=0?fmt(a.wave_height[j])+' m':'--'}</td><td>${j>=0?fmt(a.wave_period[j])+' 秒':'--'}</td></tr>`;
+  }).join('')||'<tr><td colspan="6">該当時間の予報がありません</td></tr>';
+  status.textContent=`${selected.name} · ${dateStr} · Open-Meteo予報。風と波はモデル推定値で、沿岸の実際の状況と異なる場合があります。`;
+ }catch(e){
+  if(token!==forecastToken)return;
+  document.getElementById('wind-value').textContent='取得失敗';document.getElementById('wave-value').textContent='取得失敗';
+  document.getElementById('hourly-body').innerHTML='<tr><td colspan="6">予報を取得できませんでした。通信環境を確認して再読み込みしてください。</td></tr>';
+  status.textContent=`予報取得エラー：${e.message}。通信状況やサービス側の停止をご確認ください。`;
+ }
+}
+function updateDate(){if(!day.value)return;document.getElementById('selected-date').textContent=day.value.replaceAll('-','/');const cp=document.getElementById('condition-place');if(cp)cp.textContent=`選択中：${selected.name} ／ ${day.value}`;updateSunTimes();updateTideStation();loadForecast();}
+
+day.addEventListener('change',updateDate);day.addEventListener('input',updateDate);updateDate();render();selectPlace(selected);refreshMapSize();
+
+/* Real interactive map */
+let leafletMap=null, leafletMarkers=new Map();
+function initLeafletMap(){
+ if(!window.L){mapStatus.textContent='地図ライブラリを読み込めません。通信状態を確認してください。';return;}
+ leafletMap=L.map('map',{zoomControl:true,scrollWheelZoom:false}).setView([37.12,138.10],10);
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+   maxZoom:19,
+   attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>'
+ }).addTo(leafletMap);
+ places.forEach(p=>{
+   const marker=L.marker([p.lat,p.lng]).addTo(leafletMap).bindPopup(`<strong>${p.name}</strong><br>${p.type}`);
+   marker.on('click',()=>{selectPlace(p);document.getElementById('condition-place')?.scrollIntoView({behavior:'smooth',block:'nearest'});});
+   leafletMarkers.set(p.id,marker);
+ });
+ mapStatus.textContent='地図を表示しました。ピンをタップして釣り場を選択できます。';
+ setTimeout(()=>{leafletMap.invalidateSize();updateMapView();},150);
+}
+function updateMapView(){
+ if(!leafletMap)return;
+ const visible=places.filter(p=>activeArea==='all'||p.area===activeArea);
+ if(!visible.length)return;
+ const bounds=L.latLngBounds(visible.map(p=>[p.lat,p.lng]));
+ // 1地点だけでも見やすい縮尺にする
+ if(visible.length===1)leafletMap.setView([visible[0].lat,visible[0].lng],13);
+ else leafletMap.fitBounds(bounds.pad(0.28),{padding:[24,24],maxZoom:13,animate:false});
+}
+function syncLeafletMarkers(){
+ if(!leafletMap)return;
+ places.forEach(p=>{
+  const marker=leafletMarkers.get(p.id);
+  if(marker){if(activeArea==='all'||p.area===activeArea)marker.addTo(leafletMap);else leafletMap.removeLayer(marker);}
+ });
+}
+const originalRender=render;
+render=function(){originalRender();syncLeafletMarkers();};
+initLeafletMap();
+
+/* Device-local fishing diary and portable backup */
+const LOG_KEY='nihonkai-fishing-logs-v1';
+const $=id=>document.getElementById(id);
+function getLogs(){try{return JSON.parse(localStorage.getItem(LOG_KEY)||'[]');}catch{return [];}}
+function saveLogs(rows){localStorage.setItem(LOG_KEY,JSON.stringify(rows));renderLogs();}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function renderLogs(){
+ const rows=getLogs().sort((a,b)=>b.date.localeCompare(a.date));
+ $('diary-list').innerHTML=rows.length?rows.map(row=>`<div class="record"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>${escapeHtml(row.date)} · ${escapeHtml(row.place)}</strong><button type="button" data-delete="${escapeHtml(row.id)}">削除</button></div><p>${escapeHtml(row.fish||'魚種未入力')}　${escapeHtml(String(row.count??0))}匹${row.note?'\n'+escapeHtml(row.note):''}</p></div>`).join(''):'<p class="status">まだ釣行記録はありません。</p>';
+ $('diary-list').querySelectorAll('[data-delete]').forEach(btn=>btn.addEventListener('click',()=>{if(confirm('この記録を削除しますか？'))saveLogs(getLogs().filter(x=>x.id!==btn.dataset.delete));}));
+}
+$('log-date').value=day.value;
+$('log-place').innerHTML=places.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+$('diary-form').addEventListener('submit',e=>{
+ e.preventDefault();
+ const p=places.find(x=>x.id===$('log-place').value);
+ const row={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),date:$('log-date').value,place:p?p.name:'未設定',fish:$('log-fish').value.trim(),count:Number($('log-count').value||0),note:$('log-note').value.trim()};
+ saveLogs([...getLogs(),row]);
+ $('log-fish').value='';$('log-count').value='1';$('log-note').value='';
+});
+$('export-data').addEventListener('click',()=>{
+ const payload={app:'日本海フィッシングナビ',version:13,exportedAt:new Date().toISOString(),logs:getLogs()};
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='nihonkai-fishing-backup.json';a.click();URL.revokeObjectURL(url);
+});
+$('import-data').addEventListener('click',()=>$('import-file').click());
+$('import-file').addEventListener('change',async e=>{
+ const file=e.target.files[0];if(!file)return;
+ try{const data=JSON.parse(await file.text());if(!Array.isArray(data.logs))throw new Error('形式が違います');if(!confirm(`${data.logs.length}件の記録を現在の記録に追加しますか？`))return;saveLogs([...getLogs(),...data.logs]);alert('復元しました。');}
+ catch(err){alert('バックアップを読み込めませんでした。正しいバックアップファイルを選んでください。');}
+ e.target.value='';
+});
+renderLogs();
+
+if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost')){
+ window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(console.warn));
+}
+</script>
+</body></html>
